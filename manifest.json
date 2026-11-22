@@ -1,0 +1,25 @@
+{
+  "name": "EstiMate AI - Thẩm Định Giá Bất Động Sản",
+  "short_name": "EstiMate AI",
+  "description": "Ứng dụng phân tích và thẩm định giá bất động sản bằng AI",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0F2942",
+  "theme_color": "#0F2942",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/609/609803.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/609/609803.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>EstiMate AI - Định Giá Bất Động Sản</title>
+
+  <!-- Cấu hình PWA cho Android & iOS & Desktop -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0F2942" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="EstiMate AI" />
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/609/609803.png" />
+
+  <!-- Tailwind CSS & Lucide Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #f1f5f9;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .navy-gradient {
+      background: linear-gradient(135deg, #0F2942 0%, #1E3A5F 100%);
+    }
+    .gold-accent {
+      color: #D4AF37;
+    }
+    .gold-bg {
+      background-color: #D4AF37;
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+  </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col">
+
+  <!-- HEADER -->
+  <header class="navy-gradient text-white sticky top-0 z-40 shadow-md">
+    <div class="max-w-6xl mx-auto px-4 py-3.5 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl gold-bg flex items-center justify-center text-[#0F2942] shadow">
+          <i data-lucide="building-2" class="w-5 h-5 stroke-[2.5]"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-extrabold text-lg tracking-tight">EstiMate <span class="gold-accent">AI</span></h1>
+            <span id="appVersionBadge" class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-white/15 text-slate-200">v2.0 PWA</span>
+          </div>
+          <p class="text-[11px] text-slate-300 leading-none">Thẩm định giá BĐS chuyên sâu</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button onclick="openHistoryModal()" class="relative p-2 rounded-lg bg-white/10 hover:bg-white/20 transition text-sm flex items-center gap-1.5" title="Lịch sử định giá">
+          <i data-lucide="history" class="w-4 h-4"></i>
+          <span class="hidden sm:inline text-xs font-medium">Lịch sử</span>
+          <span id="historyCount" class="bg-[#D4AF37] text-[#0F2942] font-bold text-[10px] px-1.5 py-0.2 rounded-full">0</span>
+        </button>
+
+        <button onclick="openSettingsModal()" id="apiKeyBtn" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition text-sm flex items-center gap-1.5" title="Cấu hình API Key">
+          <i data-lucide="key-round" class="w-4 h-4"></i>
+          <span id="apiKeyStatusText" class="text-xs font-medium">API Key</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT -->
+  <main class="flex-1 max-w-6xl w-full mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- CỘT TRÁI: FORM NHẬP THÔNG TIN BĐS -->
+    <section class="lg:col-span-5 space-y-4">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-bold text-base text-[#0F2942] flex items-center gap-2">
+            <i data-lucide="clipboard-list" class="w-5 h-5 text-[#D4AF37]"></i>
+            Thông tin bất động sản
+          </h2>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="fillSampleData()" class="text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 px-2.5 py-1 rounded-lg transition">
+              Điền mẫu
+            </button>
+            <button type="button" onclick="resetForm()" class="text-xs font-medium text-slate-500 hover:text-slate-700 px-2 py-1 rounded-lg">
+              Xóa
+            </button>
+          </div>
+        </div>
+
+        <form id="valuationForm" onsubmit="handleValuation(event)" class="space-y-3.5 text-sm">
+          <!-- Loại hình -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Loại hình BĐS *</label>
+            <select id="propertyType" required class="w-full rounded-xl border border-slate-300 px-3 py-2.5 bg-slate-50 focus:bg-white focus:border-[#0F2942] focus:outline-none">
+              <option value="Nhà phố / Nhà riêng">Nhà phố / Nhà riêng</option>
+              <option value="Nhà mặt tiền kinh doanh">Nhà mặt tiền kinh doanh</option>
+              <option value="Căn hộ chung cư">Căn hộ chung cư</option>
+              <option value="Đất nền thổ cư">Đất nền thổ cư</option>
+              <option value="Đất nông nghiệp / Đất vườn">Đất nông nghiệp / Đất vườn</option>
+              <option value="Biệt thự / Liền kề">Biệt thự / Liền kề</option>
+              <option value="Shophouse">Shophouse</option>
+            </select>
+          </div>
+
+          <!-- Vị trí -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Tỉnh / Thành phố *</label>
+              <input type="text" id="city" required placeholder="VD: TP. Hồ Chí Minh" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 focus:border-[#0F2942] focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Quận / Huyện *</label>
+              <input type="text" id="district" required placeholder="VD: Quận 8 / Bình Chánh" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 focus:border-[#0F2942] focus:outline-none" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Phường/Xã, Tên đường, Dự án *</label>
+            <input type="text" id="address" required placeholder="VD: Đường Tạ Quang Bửu, P.4 (gần Topaz Elite)" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 focus:border-[#0F2942] focus:outline-none" />
+          </div>
+
+          <!-- Diện tích & Kích thước -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Diện tích đất / sàn (m²) *</label>
+              <input type="number" step="0.1" id="area" required placeholder="VD: 80" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 focus:border-[#0F2942] focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Mặt tiền × Dài (m)</label>
+              <input type="text" id="dimensions" placeholder="VD: 4m x 20m, nở hậu" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 focus:border-[#0F2942] focus:outline-none" />
+            </div>
+          </div>
+
+          <!-- Đường/Hẻm & Kết cấu -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Độ rộng đường / hẻm *</label>
+              <input type="text" id="roadWidth" required placeholder="VD: Hẻm xe hơi 6m thông" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 focus:border-[#0F2942] focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Kết cấu / Số tầng</label>
+              <input type="text" id="structure" placeholder="VD: 1 trệt 2 lầu sân thượng" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 focus:border-[#0F2942] focus:outline-none" />
+            </div>
+          </div>
+
+          <!-- Pháp lý & Hướng -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Tình trạng pháp lý *</label>
+              <select id="legalStatus" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 bg-slate-50 focus:bg-white focus:border-[#0F2942] focus:outline-none">
+                <option value="Sổ hồng riêng / Sổ đỏ hoàn công đầy đủ">Sổ hồng riêng, hoàn công đủ</option>
+                <option value="Sổ hồng riêng (chưa hoàn công)">Sổ hồng riêng (chưa hoàn công)</option>
+                <option value="Hợp đồng mua bán (HĐMB)">Hợp đồng mua bán (HĐMB)</option>
+                <option value="Đất thổ cư (ODT / ONT)">Đất thổ cư (ODT / ONT)</option>
+                <option value="Đất trồng cây lâu năm / Đất nông nghiệp">Đất nông nghiệp / CLN</option>
+                <option value="Vi bằng / Giấy tay / Đang chờ sổ">Vi bằng / Đang chờ sổ</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Hướng & Tình trạng nhà</label>
+              <input type="text" id="condition" placeholder="VD: Đông Nam, nhà mới 90%" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 focus:border-[#0F2942] focus:outline-none" />
+            </div>
+          </div>
+
+          <!-- Ghi chú đặc biệt -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Yếu tố đặc biệt / Quy hoạch / Giá chào tham khảo</label>
+            <textarea id="notes" rows="2" placeholder="VD: Cách mặt tiền chính 50m, không dính quy hoạch, chủ đang cần bán gấp hoặc đang rao 7.5 tỷ..." class="w-full rounded-xl border border-slate-300 px-3 py-2 focus:border-[#0F2942] focus:outline-none"></textarea>
+          </div>
+
+          <button type="submit" id="submitBtn" class="w-full navy-gradient hover:opacity-95 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-[#0F2942]/20 flex items-center justify-center gap-2 transition cursor-pointer">
+            <i data-lucide="sparkles" class="w-5 h-5 text-[#D4AF37]"></i>
+            <span>Phân Tích & Định Giá AI</span>
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- CỘT PHẢI: KẾT QUẢ THẨM ĐỊNH -->
+    <section class="lg:col-span-7 space-y-4">
+      <!-- Trạng thái chờ -->
+      <div id="emptyState" class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-8 text-center flex flex-col items-center justify-center min-h-[420px]">
+        <div class="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center text-[#0F2942] mb-4">
+          <i data-lucide="line-chart" class="w-8 h-8 text-[#D4AF37]"></i>
+        </div>
+        <h3 class="font-bold text-lg text-[#0F2942] mb-1">Sẵn sàng thẩm định giá bất động sản</h3>
+        <p class="text-sm text-slate-500 max-w-md mb-5">
+          Nhập thông số chi tiết ở cột bên trái để AI phân tích đơn giá khu vực, biên độ thanh khoản, yếu tố cộng/trừ giá và chiến lược chốt giao dịch.
+        </p>
+        <div id="noKeyWarning" class="hidden bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-3.5 text-xs max-w-md text-left flex items-start gap-2.5">
+          <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 shrink-0 mt-0.5"></i>
+          <div>
+            <p class="font-bold">Chưa cấu hình Gemini API Key trên thiết bị này</p>
+            <p class="mt-0.5">Bấm nút <button onclick="openSettingsModal()" class="underline font-bold">API Key</button> ở góc trên bên phải để nhập key riêng của bạn (chỉ lưu cục bộ trên máy này).</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trạng thái đang tải -->
+      <div id="loadingState" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200/80 p-10 text-center flex flex-col items-center justify-center min-h-[420px]">
+        <div class="w-12 h-12 border-4 border-slate-200 border-t-[#0F2942] rounded-full animate-spin mb-4"></div>
+        <h3 class="font-bold text-base text-[#0F2942]">AI đang phân tích dữ liệu thị trường...</h3>
+        <p class="text-xs text-slate-500 mt-1">Đang đối chiếu vị trí, hệ số hẻm, pháp lý và biên độ giao dịch khu vực</p>
+      </div>
+
+      <!-- Kết quả định giá -->
+      <div id="resultContainer" class="hidden space-y-4">
+        <!-- Card Tổng quan giá -->
+        <div class="navy-gradient text-white rounded-2xl p-5 shadow-lg relative overflow-hidden">
+          <div class="flex items-start justify-between gap-2 mb-4">
+            <div>
+              <span class="text-[11px] uppercase tracking-wider font-bold text-[#D4AF37]">Báo cáo thẩm định sơ bộ</span>
+              <h3 id="resTitle" class="font-bold text-base sm:text-lg mt-0.5 leading-snug"></h3>
+            </div>
+            <button onclick="copyReport()" class="shrink-0 bg-white/15 hover:bg-white/25 text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+              <span id="copyBtnText">Sao chép</span>
+            </button>
+          </div>
+
+          <!-- 3 Mốc Giá -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="bg-white/10 backdrop-blur rounded-xl p-3.5 border border-white/10">
+              <p class="text-[11px] text-slate-300">Giá bán nhanh (Thanh khoản cao)</p>
+              <p id="resQuickPrice" class="text-lg font-extrabold text-emerald-300 mt-1"></p>
+              <p id="resQuickUnit" class="text-[11px] text-slate-300 mt-0.5"></p>
+            </div>
+            <div class="bg-[#D4AF37]/20 backdrop-blur rounded-xl p-3.5 border border-[#D4AF37]">
+              <p class="text-[11px] text-[#D4AF37] font-bold">GIÁ SÁT THỊ TRƯỜNG (ĐỀ XUẤT)</p>
+              <p id="resMarketPrice" class="text-xl font-extrabold text-white mt-1"></p>
+              <p id="resMarketUnit" class="text-[11px] text-amber-200 mt-0.5"></p>
+            </div>
+            <div class="bg-white/10 backdrop-blur rounded-xl p-3.5 border border-white/10">
+              <p class="text-[11px] text-slate-300">Giá kỳ vọng (Chào bán tối đa)</p>
+              <p id="resExpectedPrice" class="text-lg font-extrabold text-sky-300 mt-1"></p>
+              <p id="resExpectedUnit" class="text-[11px] text-slate-300 mt-0.5"></p>
+            </div>
+          </div>
+
+          <!-- Thanh khoản & Độ tin cậy -->
+          <div class="mt-4 pt-3 border-t border-white/15 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div class="flex items-center gap-2">
+              <span class="text-slate-300">Thanh khoản khu vực:</span>
+              <span id="resLiquidity" class="font-bold text-[#D4AF37]"></span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-slate-300">Độ tin cậy dữ liệu:</span>
+              <span id="resConfidence" class="font-bold text-emerald-300"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phân tích chi tiết -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 space-y-4 text-sm">
+          <div>
+            <h4 class="font-bold text-[#0F2942] flex items-center gap-1.5 mb-1.5">
+              <i data-lucide="map-pin" class="w-4 h-4 text-[#D4AF37]"></i>
+              Nhận định thị trường & Đơn giá khu vực
+            </h4>
+            <p id="resMarketAnalysis" class="text-slate-600 leading-relaxed"></p>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+            <div class="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-3.5">
+              <h5 class="font-bold text-emerald-800 text-xs uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                <i data-lucide="trending-up" class="w-4 h-4"></i> Yếu tố cộng giá (Ưu điểm)
+              </h5>
+              <ul id="resPros" class="space-y-1.5 text-xs text-slate-700 list-disc pl-4"></ul>
+            </div>
+
+            <div class="bg-rose-50/70 border border-rose-200/80 rounded-xl p-3.5">
+              <h5 class="font-bold text-rose-800 text-xs uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                <i data-lucide="trending-down" class="w-4 h-4"></i> Yếu tố trừ giá / Rủi ro
+              </h5>
+              <ul id="resCons" class="space-y-1.5 text-xs text-slate-700 list-disc pl-4"></ul>
+            </div>
+          </div>
+
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
+            <h4 class="font-bold text-[#0F2942] text-xs uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+              <i data-lucide="shield-check" class="w-4 h-4 text-[#D4AF37]"></i>
+              Chiến lược thương lượng & Lưu ý pháp lý
+            </h4>
+            <p id="resStrategy" class="text-xs text-slate-600 leading-relaxed"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL CẤU HÌNH API KEY -->
+  <div id="settingsModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-bold text-base text-[#0F2942] flex items-center gap-2">
+          <i data-lucide="key-round" class="w-5 h-5 text-[#D4AF37]"></i>
+          Cấu hình Gemini API Key riêng
+        </h3>
+        <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <p class="text-xs text-slate-600 mb-3 leading-relaxed">
+        Key chỉ được lưu trực tiếp trong trình duyệt của thiết bị này (<code>localStorage</code>), không gửi đi đâu khác ngoài Google Gemini API.
+      </p>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Gemini API Key</label>
+          <input type="password" id="apiKeyInput" placeholder="AIzaSy..." class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:border-[#0F2942] focus:outline-none" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Model AI sử dụng</label>
+          <select id="modelSelect" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm bg-slate-50">
+            <option value="gemini-2.5-flash">Gemini 2.5 Flash (Nhanh, chuẩn xác - Khuyên dùng)</option>
+            <option value="gemini-2.5-pro">Gemini 2.5 Pro (Phân tích sâu hơn)</option>
+          </select>
+        </div>
+        <div class="flex items-center justify-between pt-2">
+          <button type="button" onclick="clearApiKey()" class="text-xs text-rose-600 hover:underline font-medium">Xóa Key trên máy này</button>
+          <div class="flex gap-2">
+            <button type="button" onclick="closeSettingsModal()" class="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">Đóng</button>
+            <button type="button" onclick="saveApiKey()" class="px-4 py-2 rounded-xl text-xs font-bold text-white navy-gradient">Lưu cấu hình</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL LỊCH SỬ ĐỊNH GIÁ -->
+  <div id="historyModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-5 shadow-2xl max-h-[85vh] flex flex-col">
+      <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
+        <h3 class="font-bold text-base text-[#0F2942] flex items-center gap-2">
+          <i data-lucide="history" class="w-5 h-5 text-[#D4AF37]"></i>
+          Lịch sử định giá đã lưu trên máy
+        </h3>
+        <div class="flex items-center gap-3">
+          <button onclick="clearHistory()" class="text-xs text-rose-600 hover:underline font-medium">Xóa tất cả</button>
+          <button onclick="closeHistoryModal()" class="text-slate-400 hover:text-slate-600">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+      <div id="historyList" class="overflow-y-auto space-y-2.5 flex-1 pr-1"></div>
+    </div>
+  </div>
+
+  <script>
+    // Khởi tạo icons
+    lucide.createIcons();
+
+    const STORAGE_KEY_API = 'estimate_ai_gemini_key';
+    const STORAGE_KEY_MODEL = 'estimate_ai_model';
+    const STORAGE_KEY_HISTORY = 'estimate_ai_history_v1';
+
+    let currentReportText = '';
+
+    // Kiểm tra trạng thái API Key & Lịch sử khi mở app
+    window.addEventListener('DOMContentLoaded', () => {
+      updateApiKeyUI();
+      updateHistoryCount();
+    });
+
+    function getApiKey() {
+      return localStorage.getItem(STORAGE_KEY_API) || '';
+    }
+
+    function getModel() {
+      return localStorage.getItem(STORAGE_KEY_MODEL) || 'gemini-2.5-flash';
+    }
+
+    function updateApiKeyUI() {
+      const key = getApiKey();
+      const statusText = document.getElementById('apiKeyStatusText');
+      const noKeyWarning = document.getElementById('noKeyWarning');
+      if (key) {
+        statusText.textContent = 'Đã gắn Key';
+        statusText.classList.add('text-emerald-300');
+        noKeyWarning.classList.add('hidden');
+      } else {
+        statusText.textContent = 'Nhập Key';
+        statusText.classList.remove('text-emerald-300');
+        noKeyWarning.classList.remove('hidden');
+      }
+    }
+
+    function openSettingsModal() {
+      document.getElementById('apiKeyInput').value = getApiKey();
+      document.getElementById('modelSelect').value = getModel();
+      document.getElementById('settingsModal').classList.remove('hidden');
+    }
+
+    function closeSettingsModal() {
+      document.getElementById('settingsModal').classList.add('hidden');
+    }
+
+    function saveApiKey() {
+      const key = document.getElementById('apiKeyInput').value.trim();
+      const model = document.getElementById('modelSelect').value;
+      if (!key) {
+        alert('Vui lòng nhập Gemini API Key!');
+        return;
+      }
+      localStorage.setItem(STORAGE_KEY_API, key);
+      localStorage.setItem(STORAGE_KEY_MODEL, model);
+      updateApiKeyUI();
+      closeSettingsModal();
+    }
+
+    function clearApiKey() {
+      localStorage.removeItem(STORAGE_KEY_API);
+      document.getElementById('apiKeyInput').value = '';
+      updateApiKeyUI();
+    }
+
+    function fillSampleData() {
+      document.getElementById('propertyType').value = 'Nhà phố / Nhà riêng';
+      document.getElementById('city').value = 'TP. Hồ Chí Minh';
+      document.getElementById('district').value = 'Quận 8';
+      document.getElementById('address').value = 'Đường Tạ Quang Bửu, Phường 4 (gần cụm căn hộ Topaz Elite)';
+      document.getElementById('area').value = '64';
+      document.getElementById('dimensions').value = '4m x 16m, vuông vức';
+      document.getElementById('roadWidth').value = 'Hẻm nhựa 6m xe hơi tránh nhau, cách mặt tiền 60m';
+      document.getElementById('structure').value = '1 trệt, 2 lầu, sân thượng đúc BTCT';
+      document.getElementById('legalStatus').value = 'Sổ hồng riêng / Sổ đỏ hoàn công đầy đủ';
+      document.getElementById('condition').value = 'Hướng Đông Nam, nhà mới đẹp vào ở ngay';
+      document.getElementById('notes').value = 'Khu dân cư hiện hữu không quy hoạch, chủ đang chào 8.4 tỷ có thương lượng.';
+    }
+
+    function resetForm() {
+      document.getElementById('valuationForm').reset();
+    }
+
+    async function handleValuation(e) {
+      e.preventDefault();
+      const apiKey = getApiKey();
+      if (!apiKey) {
+        openSettingsModal();
+        return;
+      }
+
+      const data = {
+        propertyType: document.getElementById('propertyType').value,
+        city: document.getElementById('city').value.trim(),
+        district: document.getElementById('district').value.trim(),
+        address: document.getElementById('address').value.trim(),
+        area: document.getElementById('area').value.trim(),
+        dimensions: document.getElementById('dimensions').value.trim() || 'Không rõ',
+        roadWidth: document.getElementById('roadWidth').value.trim(),
+        structure: document.getElementById('structure').value.trim() || 'Không rõ',
+        legalStatus: document.getElementById('legalStatus').value,
+        condition: document.getElementById('condition').value.trim() || 'Bình thường',
+        notes: document.getElementById('notes').value.trim() || 'Không có'
+      };
+
+      // UI Loading
+      document.getElementById('emptyState').classList.add('hidden');
+      document.getElementById('resultContainer').classList.add('hidden');
+      document.getElementById('loadingState').classList.remove('hidden');
+      document.getElementById('submitBtn').disabled = true;
+
+      const prompt = `Bạn là chuyên gia thẩm định giá bất động sản tại Việt Nam với hơn 15 năm kinh nghiệm định giá thực chiến, am hiểu sâu sắc giá giao dịch thực tế từng tuyến đường, hệ số hẻm, chi phí xây dựng hoàn công và rủi ro pháp lý.
+
+Hãy thẩm định giá bất động sản sau đây sát với giá thị trường giao dịch thực tế hiện nay:
+- Loại hình: ${data.propertyType}
+- Địa chỉ: ${data.address}, ${data.district}, ${data.city}
+- Diện tích: ${data.area} m² (Kích thước: ${data.dimensions})
+- Đường/Hẻm: ${data.roadWidth}
+- Kết cấu: ${data.structure}
+- Pháp lý: ${data.legalStatus}
+- Hướng & Tình trạng: ${data.condition}
+- Ghi chú thêm: ${data.notes}
+
+Trả về kết quả DUY NHẤT dưới dạng JSON hợp lệ (không bọc trong markdown \`\`\`json) theo đúng cấu trúc sau:
+{
+  "title": "Tên tóm tắt tài sản thẩm định",
+  "quick_sale_price": "VD: 7.45 tỷ",
+  "quick_sale_unit": "VD: ~116.4 triệu/m²",
+  "market_price": "VD: 7.85 tỷ",
+  "market_unit": "VD: ~122.6 triệu/m²",
+  "expected_price": "VD: 8.20 tỷ",
+  "expected_unit": "VD: ~128.1 triệu/m²",
+  "liquidity": "VD: Khá tốt (1 - 2 tháng)",
+  "confidence": "VD: Cao (85% - Dữ liệu khu vực rõ ràng)",
+  "market_analysis": "Phân tích chi tiết đơn giá đất khu vực, giá trị xây dựng còn lại (nếu có) và so sánh với mặt bằng giao dịch lân cận.",
+  "pros": ["Ưu điểm 1", "Ưu điểm 2", "Ưu điểm 3"],
+  "cons": ["Nhược điểm / rủi ro 1", "Nhược điểm / rủi ro 2"],
+  "strategy": "Lời khuyên định giá chào bán, biên độ thương lượng thực tế và lưu ý kiểm tra quy hoạch/pháp lý trước khi giao dịch."
+}`;
+
+      try {
+        const model = getModel();
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: 0.3,
+              responseMimeType: "application/json"
+            }
+          })
+        });
+
+        const resJson = await response.json();
+        if (!response.ok) {
+          throw new Error(resJson.error?.message || 'Lỗi kết nối Gemini API');
+        }
+
+        const rawText = resJson.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const parsed = JSON.parse(rawText);
+
+        renderResult(parsed, data);
+        saveToHistory(parsed, data);
+
+      } catch (err) {
+        alert('Không thể phân tích: ' + err.message);
+        document.getElementById('emptyState').classList.remove('hidden');
+      } finally {
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('submitBtn').disabled = false;
+      }
+    }
+
+    function renderResult(res, inputData) {
+      document.getElementById('resTitle').textContent = res.title || `${inputData.propertyType} - ${inputData.address}`;
+      document.getElementById('resQuickPrice').textContent = res.quick_sale_price;
+      document.getElementById('resQuickUnit').textContent = res.quick_sale_unit;
+      document.getElementById('resMarketPrice').textContent = res.market_price;
+      document.getElementById('resMarketUnit').textContent = res.market_unit;
+      document.getElementById('resExpectedPrice').textContent = res.expected_price;
+      document.getElementById('resExpectedUnit').textContent = res.expected_unit;
+      document.getElementById('resLiquidity').textContent = res.liquidity;
+      document.getElementById('resConfidence').textContent = res.confidence;
+      document.getElementById('resMarketAnalysis').textContent = res.market_analysis;
+      document.getElementById('resStrategy').textContent = res.strategy;
+
+      const prosEl = document.getElementById('resPros');
+      prosEl.innerHTML = (res.pros || []).map(item => `<li>${item}</li>`).join('');
+
+      const consEl = document.getElementById('resCons');
+      consEl.innerHTML = (res.cons || []).map(item => `<li>${item}</li>`).join('');
+
+      currentReportText = `BÁO CÁO THẨM ĐỊNH GIÁ BĐS SƠ BỘ
+Tài sản: ${res.title}
+Vị trí: ${inputData.address}, ${inputData.district}, ${inputData.city}
+Diện tích: ${inputData.area} m² | Đường: ${inputData.roadWidth} | Pháp lý: ${inputData.legalStatus}
+----------------------------------
+• Giá bán nhanh: ${res.quick_sale_price} (${res.quick_sale_unit})
+• Giá sát thị trường: ${res.market_price} (${res.market_unit})
+• Giá kỳ vọng: ${res.expected_price} (${res.expected_unit})
+• Thanh khoản: ${res.liquidity}
+----------------------------------
+Nhận định: ${res.market_analysis}
+Chiến lược: ${res.strategy}`;
+
+      document.getElementById('resultContainer').classList.remove('hidden');
+      if (window.innerWidth < 1024) {
+        document.getElementById('resultContainer').scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+
+    function copyReport() {
+      if (!currentReportText) return;
+      navigator.clipboard.writeText(currentReportText);
+      const btnText = document.getElementById('copyBtnText');
+      btnText.textContent = 'Đã chép!';
+      setTimeout(() => { btnText.textContent = 'Sao chép'; }, 2000);
+    }
+
+    // LƯU TRỮ LỊCH SỬ TRÊN THIẾT BỊ
+    function getHistory() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY_HISTORY) || '[]');
+      } catch {
+        return [];
+      }
+    }
+
+    function saveToHistory(result, inputData) {
+      const history = getHistory();
+      history.unshift({
+        id: Date.now(),
+        time: new Date().toLocaleString('vi-VN'),
+        inputData,
+        result
+      });
+      // Giữ tối đa 50 hồ sơ gần nhất
+      localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify(history.slice(0, 50)));
+      updateHistoryCount();
+    }
+
+    function updateHistoryCount() {
+      document.getElementById('historyCount').textContent = getHistory().length;
+    }
+
+    function openHistoryModal() {
+      const listEl = document.getElementById('historyList');
+      const history = getHistory();
+      if (history.length === 0) {
+        listEl.innerHTML = '<p class="text-xs text-slate-500 text-center py-8">Chưa có hồ sơ định giá nào được lưu trên thiết bị này.</p>';
+      } else {
+        listEl.innerHTML = history.map((item, idx) => `
+          <div onclick="loadHistoryItem(${idx})" class="p-3.5 rounded-xl border border-slate-200 hover:border-[#0F2942] hover:bg-slate-50 cursor-pointer transition">
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-bold text-xs text-[#0F2942] line-clamp-1">${item.result.title}</span>
+              <span class="text-[11px] font-extrabold text-amber-700 bg-amber-100 px-2 py-0.5 rounded shrink-0">${item.result.market_price}</span>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-1">${item.inputData.area} m² • ${item.inputData.district}, ${item.inputData.city}</p>
+            <p class="text-[10px] text-slate-400 mt-1">${item.time}</p>
+          </div>
+        `).join('');
+      }
+      document.getElementById('historyModal').classList.remove('hidden');
+    }
+
+    function closeHistoryModal() {
+      document.getElementById('historyModal').classList.add('hidden');
+    }
+
+    function loadHistoryItem(index) {
+      const item = getHistory()[index];
+      if (!item) return;
+      const d = item.inputData;
+      document.getElementById('propertyType').value = d.propertyType;
+      document.getElementById('city').value = d.city;
+      document.getElementById('district').value = d.district;
+      document.getElementById('address').value = d.address;
+      document.getElementById('area').value = d.area;
+      document.getElementById('dimensions').value = d.dimensions === 'Không rõ' ? '' : d.dimensions;
+      document.getElementById('roadWidth').value = d.roadWidth;
+      document.getElementById('structure').value = d.structure === 'Không rõ' ? '' : d.structure;
+      document.getElementById('legalStatus').value = d.legalStatus;
+      document.getElementById('condition').value = d.condition === 'Bình thường' ? '' : d.condition;
+      document.getElementById('notes').value = d.notes === 'Không có' ? '' : d.notes;
+
+      document.getElementById('emptyState').classList.add('hidden');
+      renderResult(item.result, d);
+      closeHistoryModal();
+    }
+
+    function clearHistory() {
+      if (confirm('Xóa toàn bộ lịch sử định giá trên thiết bị này?')) {
+        localStorage.removeItem(STORAGE_KEY_HISTORY);
+        updateHistoryCount();
+        openHistoryModal();
+      }
+    }
+  </script>
+</body>
+</html>
