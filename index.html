@@ -317,8 +317,8 @@
         <div>
           <label class="block text-xs font-semibold text-slate-700 mb-1">Model AI sử dụng</label>
           <select id="modelSelect" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm bg-slate-50">
-            <option value="gemini-2.5-flash">Gemini 2.5 Flash (Nhanh, chuẩn xác - Khuyên dùng)</option>
-            <option value="gemini-2.5-pro">Gemini 2.5 Pro (Phân tích sâu hơn)</option>
+            <option value="gemini-3.8-flash">gemini-3.8-flash (Nhanh, chuẩn xác - Khuyên dùng)</option>
+            <option value="gemini-3.8-Pro">gemini-3.8-Pro (Phân tích sâu hơn)</option>
           </select>
         </div>
         <div class="flex items-center justify-between pt-2">
@@ -372,7 +372,7 @@
     }
 
     function getModel() {
-      return localStorage.getItem(STORAGE_KEY_MODEL) || 'gemini-2.5-flash';
+      return localStorage.getItem(STORAGE_KEY_MODEL) || 'gemini-3.8-flash';
     }
 
     function updateApiKeyUI() {
